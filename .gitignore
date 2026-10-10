@@ -1,3 +1,6 @@
+# Local git hooks
+.githooks/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
