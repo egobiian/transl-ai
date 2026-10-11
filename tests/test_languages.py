@@ -79,6 +79,16 @@ def test_a_plural_form_is_described_by_the_numbers_that_take_it() -> None:
     ]
 
 
+def test_norwegian_is_written_under_the_name_godot_gives_it() -> None:
+    assert language("no").locale == "nb"
+
+
+def test_every_other_language_is_written_under_its_own_code() -> None:
+    renamed = {code for code, known in LANGUAGES.items() if known.locale != code}
+
+    assert renamed == {"no"}
+
+
 def test_unknown_language_code_is_rejected() -> None:
     with pytest.raises(UnknownLanguageError, match="'xx'"):
         language("xx")

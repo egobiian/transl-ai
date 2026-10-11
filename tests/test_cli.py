@@ -60,6 +60,20 @@ def test_the_file_is_updated_with_a_column_per_target_language(
     ]
 
 
+def test_norwegian_is_asked_for_as_no_and_written_as_nb(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = source_file(tmp_path)
+
+    main([str(path), "--from", "es", "--to", "no"], EchoBackend())
+
+    assert path.read_bytes().decode("utf-8").splitlines()[:2] == [
+        "keys,?plural,es,nb,_notes",
+        "PLAY,,Jugar,Norwegian(Jugar),",
+    ]
+    assert capsys.readouterr().out == f"no: 3 texts translated -> {path}\n"
+
+
 def test_output_option_writes_elsewhere_and_leaves_the_file_alone(
     tmp_path: Path,
 ) -> None:

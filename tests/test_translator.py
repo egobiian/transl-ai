@@ -347,6 +347,30 @@ def test_a_second_language_reuses_the_rows_the_first_one_added(tmp_path: Path) -
     ]
 
 
+def test_norwegian_goes_to_the_column_godot_names_nb(tmp_path: Path) -> None:
+    document = load(tmp_path, "keys,es\nPLAY,Jugar\n")
+
+    translate_document(EchoBackend(), document, source="es", target="no")
+
+    assert saved(tmp_path, document) == ("keys,es,nb\nPLAY,Jugar,Norwegian(Jugar)\n")
+
+
+def test_a_norwegian_column_already_headed_no_is_reused(tmp_path: Path) -> None:
+    document = load(tmp_path, "keys,es,no\nPLAY,Jugar,\n")
+
+    translate_document(EchoBackend(), document, source="es", target="no")
+
+    assert saved(tmp_path, document) == ("keys,es,no\nPLAY,Jugar,Norwegian(Jugar)\n")
+
+
+def test_norwegian_as_the_source_is_read_from_the_nb_column(tmp_path: Path) -> None:
+    document = load(tmp_path, "keys,nb\nPLAY,Spill\n")
+
+    translate_document(EchoBackend(), document, source="no", target="en")
+
+    assert saved(tmp_path, document) == "keys,nb,en\nPLAY,Spill,English(Spill)\n"
+
+
 def test_messages_already_translated_are_left_alone(tmp_path: Path) -> None:
     document = load(tmp_path, "keys,es,en\nPLAY,Jugar,Play\nQUIT,Salir,\nEMPTY,,\n")
     backend = EchoBackend()

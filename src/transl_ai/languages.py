@@ -26,6 +26,8 @@ class Language:
     # The rule Godot applies to the locale, in gettext syntax, copied from its table
     # (core/string/locales.h). A file's plural rows follow the order of this rule.
     plural_rule: str
+    # The header of the language's column in a file: the name Godot gives it.
+    locale: str
 
     def form_of(self, number: int) -> int:
         """The plural form `number` takes, as an index into `plural_forms`."""
@@ -144,9 +146,12 @@ _PLURAL_RULES = (
     ),
 )
 
+# Godot renames these codes when it imports a file, so the column carries its name.
+_GODOT_LOCALES = {"no": "nb"}
+
 LANGUAGES = dict(
     sorted(
-        (code, Language(_NAMES[code], rule))
+        (code, Language(_NAMES[code], rule, _GODOT_LOCALES.get(code, code)))
         for codes, rule in _PLURAL_RULES
         for code in codes.split()
     )

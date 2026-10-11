@@ -38,6 +38,12 @@ def translate(
     return _without_added_period(text, reply)
 
 
+def locale_column(document: Document, code: str) -> int | None:
+    """The column of a language: under Godot's name for it, or else its code."""
+    column = document.column(language(code).locale)
+    return column if column is not None else document.column(code)
+
+
 def translate_document(
     backend: Backend,
     document: Document,
@@ -50,14 +56,14 @@ def translate_document(
 
     A message that already has a text in `target` is left alone.
     """
-    source_column = document.column(source)
-    if source_column is None:
-        raise MissingLocaleError(f"the file has no {source!r} column")
     source_language = language(source)
     target_language = language(target)
-    target_column = document.column(target)
+    source_column = locale_column(document, source)
+    if source_column is None:
+        raise MissingLocaleError(f"the file has no {source_language.locale!r} column")
+    target_column = locale_column(document, target)
     if target_column is None:
-        target_column = document.add_locale(target)
+        target_column = document.add_locale(target_language.locale)
 
     pending = [
         block

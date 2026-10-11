@@ -9,8 +9,8 @@ from pathlib import Path
 from transl_ai import godot_csv
 from transl_ai.backends import Backend, OllamaBackend
 from transl_ai.config import DEFAULT_MODEL
-from transl_ai.languages import LANGUAGES
-from transl_ai.translator import Progress, translate_document
+from transl_ai.languages import LANGUAGES, language
+from transl_ai.translator import Progress, locale_column, translate_document
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,7 +18,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="transl-ai",
         description="Translate Godot CSV localization files with Ollama.",
-        epilog=f"LANG is one of: {', '.join(languages)}",
+        epilog=(
+            f"LANG is one of: {', '.join(languages)}."
+            " Norwegian (no) is the nb column in the file, the name Godot gives it."
+        ),
     )
     parser.add_argument("file", type=Path, help="Godot translation CSV to translate")
     parser.add_argument(
@@ -64,8 +67,8 @@ def main(argv: Sequence[str] | None = None, backend: Backend | None = None) -> i
         document = godot_csv.read(args.file)
     except FileNotFoundError:
         parser.error(f"no such file: {args.file}")
-    if document.column(args.source) is None:
-        parser.error(f"{args.file} has no {args.source!r} column")
+    if locale_column(document, args.source) is None:
+        parser.error(f"{args.file} has no {language(args.source).locale!r} column")
 
     if backend is None:
         backend = OllamaBackend(model=args.model)
