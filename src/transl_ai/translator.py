@@ -1,10 +1,20 @@
-"""Translate one text through a backend."""
+"""Translate texts, and whole documents, through a backend."""
+
+import re
+from collections.abc import Callable
 
 from transl_ai.backends import Backend
-from transl_ai.godot_csv import Entry
+from transl_ai.godot_csv import Document, MissingLocaleError
+from transl_ai.languages import PluralForm, language
 from transl_ai.prompts import build_context, build_messages
 
 NEWLINE_ESCAPE = "\\n"
+COUNT_PLACEHOLDER = "%d"
+# The full stops of the scripts the model writes in: Latin and Cyrillic, Chinese
+# and Japanese, Devanagari and Bengali, and Urdu.
+FULL_STOPS = (".", "\u3002", "\u0964", "\u06d4")
+
+Progress = Callable[[int, int], None]
 
 
 def translate(
@@ -28,17 +38,105 @@ def translate(
     return _without_added_period(text, reply)
 
 
-def translate_entry(backend: Backend, entry: Entry, *, source: str, target: str) -> str:
-    context = build_context(
-        entry.key, context=entry.context, plural_form=entry.plural_form
-    )
-    return translate(backend, entry.text, source=source, target=target, context=context)
+def translate_document(
+    backend: Backend,
+    document: Document,
+    *,
+    source: str,
+    target: str,
+    progress: Progress | None = None,
+) -> int:
+    """Fill the `target` column from the `source` one; return how many texts.
+
+    A message that already has a text in `target` is left alone.
+    """
+    source_column = document.column(source)
+    if source_column is None:
+        raise MissingLocaleError(f"the file has no {source!r} column")
+    source_language = language(source)
+    target_language = language(target)
+    target_column = document.column(target)
+    if target_column is None:
+        target_column = document.add_locale(target)
+
+    pending = [
+        block
+        for block in document.messages()
+        if block.forms(source_column) and not block.forms(target_column)
+    ]
+    forms = target_language.plural_forms
+    total = sum(len(forms) if block.plural else 1 for block in pending)
+    done = 0
+    for block in pending:
+        texts = block.forms(source_column)
+        # The target language decides how many plural forms a message gets, and
+        # each is translated from the source text for the same number.
+        for index, form in enumerate(forms if block.plural else (None,)):
+            if form is None:
+                text = texts[0]
+            else:
+                text = texts[min(source_language.form_of(form.number), len(texts) - 1)]
+            translation = _translate_form(
+                backend,
+                text,
+                form,
+                source=source,
+                target=target,
+                key=block.key,
+                context=block.context,
+            )
+            document.set_form(block, index, target_column, translation)
+            done += 1
+            if progress is not None:
+                progress(done, total)
+    document.declare_plural_rule(target_column, target_language.plural_rule)
+    return done
+
+
+def _translate_form(
+    backend: Backend,
+    text: str,
+    form: PluralForm | None,
+    *,
+    source: str,
+    target: str,
+    key: str,
+    context: str,
+) -> str:
+    if form is None:
+        described = build_context(key, context=context)
+        return translate(backend, text, source=source, target=target, context=described)
+    # With a bare %d the model reads "many" and inflects the noun wrongly, so it
+    # translates the text with a real number that is swapped back afterwards.
+    if text.count(COUNT_PLACEHOLDER) == 1:
+        numbered = translate(
+            backend,
+            text.replace(COUNT_PLACEHOLDER, str(form.number)),
+            source=source,
+            target=target,
+            context=build_context(key, context=context),
+        )
+        restored = _with_placeholder(numbered, form.number)
+        if restored is not None:
+            return restored
+    # The number came back as a word, twice or not at all: describe the form instead.
+    described = build_context(key, context=context, plural_hint=form.hint)
+    return translate(backend, text, source=source, target=target, context=described)
+
+
+def _with_placeholder(reply: str, number: int) -> str | None:
+    """Put %d back where `number` stands, if it stands in exactly one place."""
+    # \d and int() cover the digits of every script, such as Arabic or Devanagari.
+    found = [match for match in re.finditer(r"\d+", reply) if int(match[0]) == number]
+    if len(found) != 1:
+        return None
+    return reply[: found[0].start()] + COUNT_PLACEHOLDER + reply[found[0].end() :]
 
 
 def _without_added_period(source: str, reply: str) -> str:
-    # The model closes short texts with a period the source does not have, and no
-    # instruction talks it out of that.
-    added = reply.endswith(".") and not reply.endswith("..")
-    if added and not source.endswith("."):
+    # The model closes short texts with a full stop the source does not have, and
+    # no instruction talks it out of that.
+    added = reply.endswith(FULL_STOPS) and not reply.endswith("..")
+    if added and not source.endswith(FULL_STOPS):
         return reply[:-1]
     return reply

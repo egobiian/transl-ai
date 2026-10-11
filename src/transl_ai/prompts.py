@@ -2,13 +2,7 @@
 
 from typing import Literal, TypedDict
 
-LANGUAGE_NAMES = {
-    "de": "German",
-    "en": "English",
-    "es": "Spanish",
-    "fr": "French",
-    "ru": "Russian",
-}
+from transl_ai.languages import language
 
 # Each rule answers a failure measured on examples/translations.csv. Its GOOD/BAD pair
 # shows that failure on another sentence, so the prompt does not memorise the sample.
@@ -51,11 +45,6 @@ CONTEXT_LINE = (
     "Context to pick the right meaning (do not translate it or mention it): {context}\n"
 )
 
-# Without these the model reads %d as "many" and translates a singular as a plural.
-# They assume a source language with two plural forms, the singular first.
-SINGULAR_HINT = "plural form: singular, %d is exactly 1"
-PLURAL_HINT = "plural form: plural, %d is 2 or more"
-
 # The single user message TranslateGemma documents. The two blank lines before the
 # text are part of the format.
 USER_PROMPT = (
@@ -74,29 +63,14 @@ class Message(TypedDict):
     content: str
 
 
-class UnknownLanguageError(ValueError):
-    """Raised for a language code the prompt has no name for."""
-
-
-def language_name(code: str) -> str:
-    try:
-        return LANGUAGE_NAMES[code]
-    except KeyError:
-        known = ", ".join(sorted(LANGUAGE_NAMES))
-        raise UnknownLanguageError(
-            f"unknown language code {code!r}; known codes: {known}"
-        ) from None
-
-
-def build_context(
-    key: str, *, context: str = "", plural_form: int | None = None
-) -> str:
+def build_context(key: str, *, context: str = "", plural_hint: str = "") -> str:
     """Describe a text to the model with what its row says about it."""
     parts = [f"translation key {key}"]
     if context:
         parts.append(f"context: {context}")
-    if plural_form is not None:
-        parts.append(SINGULAR_HINT if plural_form == 0 else PLURAL_HINT)
+    if plural_hint:
+        # Without it the model reads %d as "many" and makes a singular plural.
+        parts.append(f"plural form: {plural_hint}")
     return "; ".join(parts)
 
 
@@ -108,9 +82,9 @@ def build_messages(
         system += CONTEXT_LINE.format(context=context)
     user = USER_PROMPT.format(
         source=source,
-        source_name=language_name(source),
+        source_name=language(source).name,
         target=target,
-        target_name=language_name(target),
+        target_name=language(target).name,
         text=text,
     )
     return [

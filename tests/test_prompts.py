@@ -1,6 +1,7 @@
 import pytest
 
-from transl_ai.prompts import UnknownLanguageError, build_context, build_messages
+from transl_ai.languages import UnknownLanguageError
+from transl_ai.prompts import build_context, build_messages
 
 
 def test_user_message_is_the_documented_translategemma_prompt() -> None:
@@ -70,18 +71,14 @@ def test_context_includes_the_context_column() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    ("plural_form", "hint"),
-    [
-        (0, "plural form: singular, %d is exactly 1"),
-        (1, "plural form: plural, %d is 2 or more"),
-        (2, "plural form: plural, %d is 2 or more"),
-    ],
-)
-def test_context_says_which_plural_form_the_row_is(plural_form: int, hint: str) -> None:
-    described = build_context("STAFF", context="female", plural_form=plural_form)
+def test_context_says_which_plural_form_the_text_is() -> None:
+    described = build_context(
+        "STAFF", context="female", plural_hint="plural, %d is 2, 3 or 4"
+    )
 
-    assert described == f"translation key STAFF; context: female; {hint}"
+    assert described == (
+        "translation key STAFF; context: female; plural form: plural, %d is 2, 3 or 4"
+    )
 
 
 def test_unknown_language_code_is_rejected() -> None:
