@@ -10,6 +10,8 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
+from transl_ai.files import write_text
+
 CONTEXT_COLUMN = "?context"
 PLURAL_COLUMN = "?plural"
 PLURAL_RULE_KEY = "?pluralrule"
@@ -97,17 +99,12 @@ def read(path: Path, *, delimiter: str = ",") -> Document:
 def write(document: Document, path: Path) -> None:
     rows = [document.header]
     rows.extend(row for block in document.blocks for row in block.rows)
-    # Written aside and then moved over, so a failure cannot leave half a file.
-    temporary = path.with_name(f".{path.name}.tmp")
-    try:
-        with temporary.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.writer(
-                handle, delimiter=document.delimiter, lineterminator=document.newline
-            )
-            writer.writerows(rows)
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    text = io.StringIO(newline="")
+    writer = csv.writer(
+        text, delimiter=document.delimiter, lineterminator=document.newline
+    )
+    writer.writerows(rows)
+    write_text(path, text.getvalue())
 
 
 def _blocks(header: Row, rows: list[Row]) -> list[Block]:
