@@ -8,6 +8,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Eduardo Gomez Blanco" }]
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=1.13.0",
     "ollama>=0.6.3",
 ]
 
