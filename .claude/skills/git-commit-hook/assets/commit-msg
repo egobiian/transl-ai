@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# Refuse a commit whose message breaks the convention.
+#
+#     <type>: <description>
+#
+# One line. Nothing else. Type from the @commitlint/config-conventional set,
+# no scope, no `!` marker, description starting lowercase, no trailing period,
+# 72 characters at most — and no body, footers or trailers, which all fall out
+# of one check: the message is exactly one line. That last rule is also what
+# keeps a `Co-Authored-By:` trailer out of the history.
+#
+# Mechanical rules only. Imperative mood and a description worth reading are
+# review's to judge: a hook guessing at grammar would cry wolf, and a gate
+# that cries wolf gets bypassed.
+#
+# Enabled by `git config core.hooksPath .githooks`.
+
+set -u
+
+# The message as git will record it, not as the editor buffer holds it:
+# comment lines and surrounding blank space stripped.
+msg=$(git stripspace --strip-comments <"$1")
+
+# Git refuses an empty message on its own; a second complaint here would blame
+# the convention for what was more likely an abandoned editor.
+[ -n "$msg" ] || exit 0
+
+header=$(printf '%s\n' "$msg" | head -n 1)
+
+# Messages git and its tooling write rather than the developer: merge commits,
+# and autosquash markers that are squashed away before anything lands. The
+# convention governs what a developer writes.
+case $header in
+	'Merge '* | 'fixup! '* | 'squash! '* | 'amend! '*) exit 0 ;;
+esac
+
+types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+
+errors=''
+complain() {
+	errors="$errors  - $1
+"
+}
+
+if printf '%s' "$header" | grep -qE "^($types): [^ ]"; then
+	# Well-formed opening. Lowercase is the rule for the description's first
+	# word; a proper noun follows the leading verb, it does not open.
+	printf '%s' "$header" | grep -qE "^($types): [A-Z]" \
+		&& complain "description starts lowercase"
+elif printf '%s' "$header" | grep -qE "^($types)!?\("; then
+	complain "no scope: 'feat:', never 'feat(auth):' — where a change landed is the diff's to answer"
+elif printf '%s' "$header" | grep -qE "^($types)!"; then
+	complain "no '!' marker — describe a breaking change in the pull request"
+elif printf '%s' "$header" | grep -qE "^($types)(:|\$)"; then
+	complain "malformed header: one colon, one space, then the description"
+else
+	complain "unknown type — one of: build chore ci docs feat fix perf refactor revert style test"
+fi
+
+[ ${#header} -le 72 ] || complain "72 characters at most, type included — this header has ${#header}"
+
+case $header in
+	*.) complain "no trailing period" ;;
+esac
+
+lines=$(printf '%s\n' "$msg" | wc -l | tr -d '[:space:]')
+[ "$lines" -eq 1 ] || complain "one line only — no body, no footers, no trailers; context belongs in the PR"
+
+[ -z "$errors" ] && exit 0
+
+{
+	echo ""
+	echo "commit rejected — the message breaks the convention:"
+	echo ""
+	printf '%s' "$errors"
+	echo ""
+	echo "The message was:"
+	printf '%s\n' "$msg" | sed 's/^/    /'
+	echo ""
+	echo "The shape:"
+	echo "    <type>: <description>"
+	echo "One line, 72 characters, no scope, description lowercase, no period."
+	echo ""
+} >&2
+
+exit 1

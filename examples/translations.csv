@@ -1,0 +1,30 @@
+keys,?plural,?context,es,_notes
+,optional,optional,required,"optional. Column legend: Godot skips this row because its key is empty. The key column and at least one locale column are required. ?plural, ?context and ?pluralrule need Godot 4.6 or later."
+?pluralrule,,,nplurals=2; plural=(n != 1);,Optional row: the plural rule of each locale.
+MENU_PLAY,,,Jugar,
+MENU_OPTIONS,,,Opciones,
+MENU_QUIT,,,Salir,
+SAVE_NOTICE,,,Partida guardada.\nNo apagues la consola.,Line break written as \n.
+INTRO,,,"Hace mucho tiempo,
+en un reino olvidado...",Text with a comma and a real line break inside the cell.
+RARE_ITEM,,,Has encontrado [b]{item}[/b].,The BBCode tags and the {item} placeholder are not translated.
+BACK,,menu,Volver,Same key as the row below: here it is the menu button.
+BACK,,equipment_slot,Espalda,Same key as the row above: here it is the body part.
+GREETING,,male,"Hola, %s. ¡Bienvenido de nuevo!","Gender through the context, masculine. %s is the player's name and is not translated."
+GREETING,,female,"Hola, %s. ¡Bienvenida de nuevo!","Gender through the context, feminine."
+HERO_QUOTE,,male,"""No hay vuelta atrás"", dijo el héroe.","Text with double quotes. Gender through the context, masculine."
+HERO_QUOTE,,female,"""No hay vuelta atrás"", dijo la heroína.","Gender through the context, feminine."
+STATUS_POISONED_M,,,%s está envenenado.,Gender through separate keys: masculine adjective. %s is a character name.
+STATUS_POISONED_F,,,%s está envenenada.,Gender through separate keys: feminine adjective.
+JOB_WAITER_M,,,Camarero,Profession that differs by gender in English: waiter.
+JOB_WAITER_F,,,Camarera,Profession that differs by gender in English: waitress.
+JOB_COOK_M,,,Cocinero,Profession with one English word for both genders: cook.
+JOB_COOK_F,,,Cocinera,Profession with one English word for both genders: cook.
+IDIOM_EASY,,,¡Esto es pan comido!,Idiom: it is very easy. English: a piece of cake.
+IDIOM_EXPENSIVE,,,Esta espada cuesta un ojo de la cara.,Idiom: it is very expensive. English: an arm and a leg.
+COINS,COINS_PLURAL,,Tienes %d moneda,Plural: this row is the singular form.
+,,,Tienes %d monedas,Plural form of the row above.
+TAVERN_STAFF,TAVERN_STAFF_PLURAL,male,Hay %d camarero en la taberna.,Plural with context and gender: masculine singular.
+,,,Hay %d camareros en la taberna.,Masculine plural.
+TAVERN_STAFF,TAVERN_STAFF_PLURAL,female,Hay %d camarera en la taberna.,Plural with context and gender: feminine singular.
+,,,Hay %d camareras en la taberna.,Feminine plural.
