@@ -51,8 +51,8 @@ class OllamaBackend:
             )
         except ConnectionError as error:
             raise BackendError(
-                "cannot reach Ollama: start it (open the app or run `ollama serve`)"
-                " and try again"
+                "cannot reach Ollama: install it from https://ollama.com/download, or"
+                " start it (open the app or run `ollama serve`), and try again"
             ) from error
         except ollama.ResponseError as error:
             if error.status_code == 404:
